@@ -5,6 +5,8 @@
 #![deny(unsafe_code)]
 
 use asterctl::cfg::{MonitorConfig, Panel, load_custom_panel};
+use asterctl::fingerprint::{TimedTouchEvent, parse_usb_id, start_timed_touch_listener};
+use asterctl::gesture::{GestureAction, GestureController};
 use asterctl::render::PanelRenderer;
 use asterctl::sensors::{read_filter_file, read_key_value_file, start_file_slurper};
 use asterctl::{cfg, img};
@@ -19,6 +21,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::sync::mpsc::Receiver;
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -95,12 +98,33 @@ struct Args {
     /// Simulate serial port for testing and development, `--device` and `--usb` options are ignored.
     #[arg(long)]
     simulate: bool,
+
+    /// Use a MAFP fingerprint sensor as a touch control, specified as USB "vid:pid".
+    #[arg(long, value_name = "VID:PID")]
+    fingerprint: Option<String>,
+
+    /// Duration in milliseconds that closes the display when held.
+    #[arg(long, default_value_t = 2000)]
+    fingerprint_long_press_ms: u64,
+
+    /// Maximum gap in milliseconds between two taps that switches panel.
+    #[arg(long, default_value_t = 1000)]
+    fingerprint_double_tap_ms: u64,
+
+    /// Minimum released gap in milliseconds between two taps that switches panel.
+    #[arg(long, default_value_t = 150)]
+    fingerprint_double_tap_min_ms: u64,
 }
 
 fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     let args = Args::parse();
+    if args.fingerprint_double_tap_min_ms > args.fingerprint_double_tap_ms {
+        return Err(anyhow!(
+            "fingerprint double-tap minimum must not exceed the maximum"
+        ));
+    }
 
     // initialize display with given UART port parameter
     let mut builder = AooScreenBuilder::new();
@@ -142,14 +166,27 @@ fn main() -> anyhow::Result<()> {
         let sensor_path = PathBuf::from(args.sensor_path);
         let mapping_cfg = PathBuf::from(args.sensor_mapping);
         let cfg = load_configuration(&config, &cfg_dir, args.panels, &mapping_cfg)?;
-        run_sensor_panel(
-            &mut screen,
-            cfg,
+        let touch_events = if let Some(id) = args.fingerprint.as_deref() {
+            let (vid, pid) = parse_usb_id(id)?;
+            Some(start_timed_touch_listener(
+                vid,
+                pid,
+                Duration::from_millis(30),
+            ))
+        } else {
+            None
+        };
+        let runtime = PanelRuntime {
             cfg_dir,
             font_dir,
             sensor_path,
             img_save_path,
-        )?;
+            touch_events,
+            long_press: Duration::from_millis(args.fingerprint_long_press_ms),
+            double_tap_min: Duration::from_millis(args.fingerprint_double_tap_min_ms),
+            double_tap_max: Duration::from_millis(args.fingerprint_double_tap_ms),
+        };
+        run_sensor_panel(&mut screen, cfg, runtime)?;
         return Ok(());
     }
 
@@ -232,19 +269,34 @@ fn load_sensor_filter(mapping_cfg: &Path) -> anyhow::Result<Option<Vec<Regex>>> 
     Ok(None)
 }
 
-fn run_sensor_panel<B: Into<PathBuf>>(
+struct PanelRuntime {
+    cfg_dir: PathBuf,
+    font_dir: PathBuf,
+    sensor_path: PathBuf,
+    img_save_path: Option<PathBuf>,
+    touch_events: Option<Receiver<TimedTouchEvent>>,
+    long_press: Duration,
+    double_tap_min: Duration,
+    double_tap_max: Duration,
+}
+
+fn run_sensor_panel(
     screen: &mut AooScreen,
     mut cfg: MonitorConfig,
-    config_dir: B,
-    font_dir: B,
-    sensor_path: B,
-    img_save_path: Option<B>,
+    runtime: PanelRuntime,
 ) -> anyhow::Result<()> {
-    let font_dir = font_dir.into();
-    let config_dir = config_dir.into();
-    let img_save_path = img_save_path.map(|p| p.into());
+    let PanelRuntime {
+        cfg_dir,
+        font_dir,
+        sensor_path,
+        img_save_path,
+        touch_events,
+        long_press,
+        double_tap_min,
+        double_tap_max,
+    } = runtime;
 
-    let mut renderer = PanelRenderer::new(DISPLAY_SIZE, &font_dir, &config_dir);
+    let mut renderer = PanelRenderer::new(DISPLAY_SIZE, &font_dir, &cfg_dir);
     if let Some(img_save_path) = &img_save_path {
         renderer.set_img_save_path(img_save_path);
         renderer.set_save_render_img(true);
@@ -267,44 +319,103 @@ fn run_sensor_panel<B: Into<PathBuf>>(
         .switch_time
         .as_deref()
         .and_then(|v| f32::from_str(v).ok())
-        .map(|v| Duration::from_millis((v * 1000.0) as u64))
-        .unwrap_or(Duration::from_secs(5));
+        .map(|v| (v > 0.0).then(|| Duration::from_millis((v * 1000.0) as u64)))
+        .unwrap_or(Some(Duration::from_secs(5)));
 
-    // panel switching loop
+    let mut gestures = GestureController::new(long_press, double_tap_min, double_tap_max);
+    let mut screen_on = true;
+    let panel_switch_enabled = cfg
+        .active_panels
+        .iter()
+        .filter(|panel| **panel > 0 && **panel <= cfg.panels.len() as u32)
+        .count()
+        > 1;
+
+    // Panel switching loop. Fingerprint events are polled frequently enough for responsive
+    // gesture timing while rendering remains controlled by the panel refresh interval.
     loop {
         let panel = cfg
             .get_next_active_panel()
             .ok_or(anyhow!("No active panel"))?;
 
         info!("Switching panel: {}", panel.friendly_name());
-        let panel_switch_time = Instant::now();
+        let mut panel_switch_time = Instant::now();
+        let mut next_refresh = Instant::now();
 
         // active panel refresh loop
         let mut refresh_count = 1;
         loop {
-            let upd_start_time = Instant::now();
-
-            if img_save_path.is_some() {
-                renderer.set_img_suffix(format!("-{refresh_count:02}"));
+            let now = Instant::now();
+            if let Some(action) = gestures.tick(screen_on, now) {
+                apply_gesture(action, screen, &mut screen_on)?;
             }
 
-            // Keeping the read lock during panel rendering should be ok, otherwise we could always clone the HashMap
-            let values = sensor_values.read().expect("RwLock is poisoned");
-            update_panel(screen, &mut renderer, panel, &values)?;
-            drop(values);
-
-            let elapsed = upd_start_time.elapsed();
-            if refresh > elapsed {
-                sleep(refresh - elapsed);
+            let mut next_panel = false;
+            if let Some(events) = &touch_events {
+                while let Ok(event) = events.try_recv() {
+                    if let Some(action) = gestures.handle(event.event, screen_on, event.at) {
+                        if action == GestureAction::NextPanel && !panel_switch_enabled {
+                            debug!("Fingerprint double tap ignored: only one active panel");
+                            continue;
+                        }
+                        next_panel = action == GestureAction::NextPanel;
+                        apply_gesture(action, screen, &mut screen_on)?;
+                        if action == GestureAction::Wake {
+                            next_refresh = Instant::now();
+                            panel_switch_time = Instant::now();
+                        }
+                    }
+                }
             }
-
-            if panel_switch_time.elapsed() >= switch_time {
+            if next_panel {
                 break;
             }
 
-            refresh_count += 1;
+            let now = Instant::now();
+            if screen_on && now >= next_refresh {
+                if img_save_path.is_some() {
+                    renderer.set_img_suffix(format!("-{refresh_count:02}"));
+                }
+
+                // Keeping the read lock during rendering avoids cloning the sensor map.
+                let values = sensor_values.read().expect("RwLock is poisoned");
+                update_panel(screen, &mut renderer, panel, &values)?;
+                drop(values);
+
+                refresh_count += 1;
+                next_refresh = Instant::now() + refresh;
+            }
+
+            if screen_on
+                && switch_time.is_some_and(|switch_time| panel_switch_time.elapsed() >= switch_time)
+            {
+                break;
+            }
+
+            sleep(Duration::from_millis(20));
         }
     }
+}
+
+fn apply_gesture(
+    action: GestureAction,
+    screen: &mut AooScreen,
+    screen_on: &mut bool,
+) -> anyhow::Result<()> {
+    match action {
+        GestureAction::Wake => {
+            info!("Fingerprint touch: waking display");
+            screen.on()?;
+            *screen_on = true;
+        }
+        GestureAction::NextPanel => info!("Fingerprint double tap: switching panel"),
+        GestureAction::Sleep => {
+            info!("Fingerprint long press: switching display off");
+            screen.off()?;
+            *screen_on = false;
+        }
+    }
+    Ok(())
 }
 
 fn update_panel(

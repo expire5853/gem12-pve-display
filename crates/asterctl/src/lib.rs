@@ -5,8 +5,10 @@
 #![deny(unsafe_code)]
 
 pub mod cfg;
+pub mod fingerprint;
 pub mod font;
 mod format_value;
+pub mod gesture;
 pub mod img;
 pub mod render;
 pub mod sensors;

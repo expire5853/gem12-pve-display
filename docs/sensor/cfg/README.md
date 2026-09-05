@@ -11,7 +11,7 @@ asterctl --config monitor.json
 The original AOOSTAR-X json configuration file format is used, but only a subset of the configuration is supported:
 
 - Setup object fields:
-    - `switchTime`: Optional switch time between panels in seconds, string value interpreted as float and converted to milliseconds. Default: 5
+    - `switchTime`: Optional switch time between panels in seconds, string value interpreted as float and converted to milliseconds. Set to `0` to disable automatic switching.
     - `refresh`: Panel redraw interval in seconds specified as a float number. Default: 1
 - Panel object fields in `diy[]`:
     - `img`: Background image filename. Loaded from the specified configuration directory if not an absolute path is specified.
