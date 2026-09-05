@@ -17,7 +17,7 @@ events from the MAFP fingerprint module as screen controls.
 
 - A single-page PVE dashboard for node, CPU, memory, load, uptime, storage, and guest status.
 - One-second refresh with the time reported by the PVE host.
-- Green filled and gray hollow indicators for network links, plus the primary interface IP/CIDR.
+- Green filled and gray hollow indicators for network links and guest status, plus the primary interface IP/CIDR.
 - Touch input from the GEM12+ MAFP fingerprint module without fingerprint enrollment or matching:
   - Any touch wakes the display while it is off.
   - Holding for two seconds switches the display off.

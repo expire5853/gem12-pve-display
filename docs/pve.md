@@ -47,12 +47,16 @@ With fingerprint touch control enabled:
 - Any touch wakes the display while it is off. The release that follows is ignored.
 - Holding the sensor for 2 seconds switches the display off.
 
-The PVE configuration combines node resources and three workload rows into one page. Timed rotation
+The PVE configuration combines node resources and up to four workload rows into one page. Timed rotation
 is disabled, and double taps are ignored when only one panel is active. The hold threshold can be
 changed with `--fingerprint-long-press-ms`.
 
 The network row uses a green filled circle for an online interface and a gray hollow circle for an
 offline interface. The primary bridge also shows its CIDR address.
+
+Guest rows use the same graphical convention: a green filled circle means the guest is running and
+a gray hollow circle means it is stopped. Identity, CPU, and memory values occupy fixed columns. The
+summary circle is green only when every listed guest is running; otherwise it is gray and hollow.
 
 The touch-only protocol does not inspect, enroll, identify, or delete fingerprints. Do not run
 `fprintd` or another fingerprint client at the same time because the USB interface is exclusive.

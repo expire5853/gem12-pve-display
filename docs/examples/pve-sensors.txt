@@ -16,9 +16,28 @@ pve_wlp4s0_label: wlp4s0
 pve_cpu_display: CPU  12.5%
 pve_memory_display: RAM  16.0/64.0 GiB
 pve_storage_display: local-lvm  96.0/800.0 GiB
-pve_guest_0_display: 100  router       RUN    CPU  1.2%   RAM  0.8/2.0G
-pve_guest_1_display: 101  services     RUN    CPU  0.7%   RAM  2.4/8.0G
-pve_guest_2_display: 102  backup       STOP   CPU  0.0%   RAM  0.0/4.0G
+pve_guest_0_online_dot: ●
+pve_guest_0_offline_dot:
+pve_guest_0_identity_display: 100  router
+pve_guest_0_cpu_display: CPU  1.2%
+pve_guest_0_memory_display: RAM  0.8/2.0G
+pve_guest_1_online_dot: ●
+pve_guest_1_offline_dot:
+pve_guest_1_identity_display: 101  services
+pve_guest_1_cpu_display: CPU  0.7%
+pve_guest_1_memory_display: RAM  2.4/8.0G
+pve_guest_2_online_dot:
+pve_guest_2_offline_dot: ○
+pve_guest_2_identity_display: 102  backup
+pve_guest_2_cpu_display: CPU  0.0%
+pve_guest_2_memory_display: RAM  0.0/4.0G
+pve_guest_3_online_dot: ●
+pve_guest_3_offline_dot:
+pve_guest_3_identity_display: 103  monitor
+pve_guest_3_cpu_display: CPU  0.4%
+pve_guest_3_memory_display: RAM  0.2/0.5G
 pve_load_display: LOAD  0.42
-pve_guests_display: GUESTS  2/3 UP
+pve_guests_online_dot:
+pve_guests_offline_dot: ○
+pve_guests_display: GUESTS  3/4
 pve_uptime_display: UP  12d 08h

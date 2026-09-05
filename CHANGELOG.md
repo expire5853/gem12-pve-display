@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _Changes in the next release_
 
+### Changed
+
+- Replaced guest `RUN`/`STOP` text with graphical status indicators and aligned resource columns.
+
 ## v0.2.0-gem12.1 - 2026-09-05
 
 ### Added

@@ -390,9 +390,23 @@ fn add_guest_counts(sensors: &mut BTreeMap<String, String>, guests: &Value) -> a
     ] {
         sensors.insert(key.into(), value.to_string());
     }
+    let all_running = total > 0 && running == total;
+    sensors.insert(
+        "pve_guests_online_dot".into(),
+        if all_running { "●" } else { " " }.into(),
+    );
+    sensors.insert(
+        "pve_guests_offline_dot".into(),
+        if total > 0 && !all_running {
+            "○"
+        } else {
+            " "
+        }
+        .into(),
+    );
     sensors.insert(
         "pve_guests_display".into(),
-        format!("GUESTS  {running}/{total} UP"),
+        format!("GUESTS  {running}/{total}"),
     );
     sensors.insert(
         "pve_guest_list_title".into(),
@@ -406,25 +420,44 @@ fn add_guest_counts(sensors: &mut BTreeMap<String, String>, guests: &Value) -> a
     let mut sorted = guests.iter().collect::<Vec<_>>();
     sorted.sort_by_key(|guest| guest["vmid"].as_u64().unwrap_or_default());
     for index in 0..5 {
-        let display = sorted.get(index).map_or_else(
-            || " ".to_string(),
-            |guest| {
-                let vmid = guest["vmid"].as_u64().unwrap_or_default();
-                let name = guest["name"].as_str().unwrap_or("unnamed");
-                let name = name.chars().take(16).collect::<String>();
-                let running = guest["status"].as_str() == Some("running");
-                let state = if running { "RUN " } else { "STOP" };
-                let cpu = guest["cpu"].as_f64().unwrap_or_default() * 100.0;
-                let mem = guest["mem"].as_u64().unwrap_or_default();
-                let max_mem = guest["maxmem"].as_u64().unwrap_or_default();
-                format!(
-                    "{vmid:>3}  {name:<16} {state}   CPU {cpu:>4.1}%   RAM {:>4.1}/{:.1}G",
-                    gib(mem),
-                    gib(max_mem)
-                )
-            },
+        let prefix = format!("pve_guest_{index}");
+        let Some(guest) = sorted.get(index) else {
+            for suffix in [
+                "online_dot",
+                "offline_dot",
+                "identity_display",
+                "cpu_display",
+                "memory_display",
+                "display",
+            ] {
+                sensors.insert(format!("{prefix}_{suffix}"), " ".into());
+            }
+            continue;
+        };
+
+        let vmid = guest["vmid"].as_u64().unwrap_or_default();
+        let name = guest["name"].as_str().unwrap_or("unnamed");
+        let name = name.chars().take(18).collect::<String>();
+        let running = guest["status"].as_str() == Some("running");
+        let cpu = guest["cpu"].as_f64().unwrap_or_default() * 100.0;
+        let mem = guest["mem"].as_u64().unwrap_or_default();
+        let max_mem = guest["maxmem"].as_u64().unwrap_or_default();
+        let identity = format!("{vmid:>3}  {name}");
+        let cpu_display = format!("CPU {cpu:>4.1}%");
+        let memory_display = format!("RAM {:>4.1}/{:.1}G", gib(mem), gib(max_mem));
+
+        sensors.insert(format!("{prefix}_online_dot"), online_dot(running).into());
+        sensors.insert(format!("{prefix}_offline_dot"), offline_dot(running).into());
+        sensors.insert(format!("{prefix}_identity_display"), identity.clone());
+        sensors.insert(format!("{prefix}_cpu_display"), cpu_display.clone());
+        sensors.insert(format!("{prefix}_memory_display"), memory_display.clone());
+        sensors.insert(
+            format!("{prefix}_display"),
+            format!(
+                "{}  {identity:<23}  {cpu_display}  {memory_display}",
+                if running { "●" } else { "○" }
+            ),
         );
-        sensors.insert(format!("pve_guest_{index}_display"), display);
     }
     Ok(())
 }
@@ -542,8 +575,11 @@ mod tests {
         "\"current-kernel\":{\"release\":\"7.0.2-6-pve\"},\"loadavg\":[\"0.42\"],",
         "\"memory\":{\"used\":17179869184,\"total\":68719476736},",
         "\"rootfs\":{\"used\":5368709120,\"total\":42949672960},\"uptime\":90061}\n",
-        "__ASTER_GUESTS__[{\"type\":\"lxc\",\"status\":\"running\"},",
-        "{\"type\":\"qemu\",\"status\":\"stopped\"}]\n",
+        "__ASTER_GUESTS__[{\"vmid\":100,\"name\":\"router\",\"type\":\"lxc\",",
+        "\"status\":\"running\",\"cpu\":0.012,\"mem\":858993459,",
+        "\"maxmem\":2147483648},{\"vmid\":101,\"name\":\"backup\",",
+        "\"type\":\"qemu\",\"status\":\"stopped\",\"cpu\":0.0,\"mem\":0,",
+        "\"maxmem\":4294967296}]\n",
         "__ASTER_STORAGE__[{\"storage\":\"local\",\"active\":1,\"enabled\":1,",
         "\"used\":10737418240,\"total\":107374182400}]\n",
         "__ASTER_NETWORK__[{\"iface\":\"nic0\",\"type\":\"eth\",\"exists\":1,",
@@ -561,7 +597,17 @@ mod tests {
         assert_eq!(values["pve_version"], "9.2.2");
         assert_eq!(values["pve_cpu_percent"], "12.5");
         assert_eq!(values["pve_memory_percent"], "25.0");
-        assert_eq!(values["pve_guests_display"], "GUESTS  1/2 UP");
+        assert_eq!(values["pve_guests_display"], "GUESTS  1/2");
+        assert_eq!(values["pve_guests_online_dot"], " ");
+        assert_eq!(values["pve_guests_offline_dot"], "○");
+        assert_eq!(values["pve_guest_0_online_dot"], "●");
+        assert_eq!(values["pve_guest_0_offline_dot"], " ");
+        assert_eq!(values["pve_guest_0_identity_display"], "100  router");
+        assert_eq!(values["pve_guest_0_cpu_display"], "CPU  1.2%");
+        assert_eq!(values["pve_guest_0_memory_display"], "RAM  0.8/2.0G");
+        assert_eq!(values["pve_guest_1_online_dot"], " ");
+        assert_eq!(values["pve_guest_1_offline_dot"], "○");
+        assert_eq!(values["pve_guest_1_identity_display"], "101  backup");
         assert_eq!(values["pve_storage_display"], "local  10.0/100.0 GiB");
         assert_eq!(values["pve_uptime_display"], "UP  1d 01h");
         assert_eq!(values["pve_network_iface"], "vmbr0");
