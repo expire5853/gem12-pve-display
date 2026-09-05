@@ -6,6 +6,14 @@
 AOOSTAR GEM12+ 与 Proxmox VE 场景。它可以在设备的 960×376 副屏上持续展示节点、虚拟机、
 存储和网络状态，并使用内置 MAFP 指纹模块的触摸信号控制屏幕。
 
+## 实机效果
+
+<p align="center">
+  <img src="docs/img/gem12-pve-hardware.jpg" alt="GEM12+ 运行 Proxmox VE 状态面板" width="760">
+</p>
+
+面板原始渲染输出：
+
 ![GEM12+ Proxmox VE 单页面状态面板](docs/img/pve-dashboard.png)
 
 > 图中地址及工作负载均为文档示例，不对应真实环境。

@@ -8,6 +8,14 @@ GEM12+ and Proxmox VE. It continuously presents node, guest, storage, and
 network status on the built-in 960×376 secondary display and can use touch
 events from the MAFP fingerprint module as screen controls.
 
+## Hardware preview
+
+<p align="center">
+  <img src="docs/img/gem12-pve-hardware.jpg" alt="GEM12+ running the Proxmox VE status dashboard" width="760">
+</p>
+
+Original panel render:
+
 ![GEM12+ single-page Proxmox VE dashboard](docs/img/pve-dashboard.png)
 
 > The address and workloads shown above are documentation examples and do not
