@@ -611,7 +611,7 @@ where
     D: Deserializer<'de>,
 {
     let option = Option::<String>::deserialize(deserializer)?;
-    Ok(option.and_then(|s| if s.trim().is_empty() { None } else { Some(s) }))
+    Ok(option.filter(|s| !s.trim().is_empty()))
 }
 
 fn f32_as_rounded_i32<'de, D>(deserializer: D) -> Result<i32, D::Error>
