@@ -1,0 +1,10 @@
+[Unit]
+Description=Rebind GEM12 fingerprint USB device to LXC 103
+After=pve-cluster.service
+ConditionPathExists=/dev/gem12-fingerprint
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/gem12-display
+ExecStart=/usr/local/sbin/gem12-usb-rebind
+TimeoutStartSec=60

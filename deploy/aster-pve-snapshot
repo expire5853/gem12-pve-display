@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+node=$(hostname)
+task_dir=$(mktemp -d /tmp/aster-pve.XXXXXX)
+cleanup() { rm -rf -- "$task_dir"; }
+trap cleanup EXIT HUP INT TERM
+
+pvesh get "/nodes/$node/status" --output-format json > "$task_dir/status" &
+status_pid=$!
+pvesh get /cluster/resources --type vm --output-format json > "$task_dir/guests" &
+guests_pid=$!
+pvesh get "/nodes/$node/storage" --output-format json > "$task_dir/storage" &
+storage_pid=$!
+pvesh get "/nodes/$node/network" --output-format json > "$task_dir/network" &
+network_pid=$!
+wait "$status_pid" "$guests_pid" "$storage_pid" "$network_pid"
+
+printf '__ASTER_NODE__%s\n' "$node"
+printf '__ASTER_TIME__'
+date '+%H:%M:%S'
+printf '__ASTER_STATUS__'
+cat "$task_dir/status"
+printf '\n__ASTER_GUESTS__'
+cat "$task_dir/guests"
+printf '\n__ASTER_STORAGE__'
+cat "$task_dir/storage"
+printf '\n__ASTER_NETWORK__'
+cat "$task_dir/network"
+printf '\n'

@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+: "${GEM12_CT_ID:?Set GEM12_CT_ID in /etc/default/gem12-display}"
+ctid=$GEM12_CT_ID
+alias=/dev/gem12-fingerprint
+config=/etc/pve/lxc/${ctid}.conf
+
+[ -e "$alias" ] || exit 0
+[ -e "$config" ] || exit 0
+
+device=$(readlink -f "$alias")
+case "$device" in
+    /dev/bus/usb/[0-9][0-9][0-9]/[0-9][0-9][0-9]) ;;
+    *) echo "Unexpected fingerprint device path: $device" >&2; exit 1 ;;
+esac
+
+wanted="path=$device,mode=0660"
+current=$(sed -n 's/^dev1: //p' "$config")
+[ "$current" = "$wanted" ] && exit 0
+
+/usr/sbin/pct set "$ctid" --dev1 "$wanted"
+if /usr/sbin/pct status "$ctid" | grep -q 'status: running'; then
+    /usr/sbin/pct reboot "$ctid"
+fi

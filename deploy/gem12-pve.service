@@ -1,0 +1,15 @@
+[Unit]
+Description=GEM12 Proxmox VE sensor provider
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/gem12-display
+ExecStartPre=/usr/bin/install -d -m 0755 /run/gem12/sensors /run/gem12/tmp
+ExecStart=/opt/gem12/bin/aster-pve --host ${PVE_HOST} --out /run/gem12/sensors/pve.txt --temp-dir /run/gem12/tmp --refresh 1
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

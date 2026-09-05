@@ -1,0 +1,14 @@
+[Unit]
+Description=GEM12+ PVE status display
+Requires=gem12-pve.service
+After=gem12-pve.service
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/gem12
+ExecStart=/opt/gem12/bin/asterctl --device /dev/gem12-lcd --config /etc/gem12/pve-monitor.json --config-dir /etc/gem12 --font-dir /etc/gem12/fonts --sensor-path /run/gem12/sensors --fingerprint 3274:8012
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
