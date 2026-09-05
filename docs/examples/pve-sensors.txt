@@ -1,0 +1,24 @@
+pve_node_display: PVE · homelab
+pve_time_display: 14:26:08
+pve_version_short_display: PVE 9.2.2
+pve_network_online_dot: ●
+pve_network_offline_dot:
+pve_network_label: vmbr0 192.0.2.10/24
+pve_nic0_online_dot:
+pve_nic0_offline_dot: ○
+pve_nic0_label: nic0
+pve_nic1_online_dot: ●
+pve_nic1_offline_dot:
+pve_nic1_label: nic1
+pve_wlp4s0_online_dot:
+pve_wlp4s0_offline_dot: ○
+pve_wlp4s0_label: wlp4s0
+pve_cpu_display: CPU  12.5%
+pve_memory_display: RAM  16.0/64.0 GiB
+pve_storage_display: local-lvm  96.0/800.0 GiB
+pve_guest_0_display: 100  router       RUN    CPU  1.2%   RAM  0.8/2.0G
+pve_guest_1_display: 101  services     RUN    CPU  0.7%   RAM  2.4/8.0G
+pve_guest_2_display: 102  backup       STOP   CPU  0.0%   RAM  0.0/4.0G
+pve_load_display: LOAD  0.42
+pve_guests_display: GUESTS  2/3 UP
+pve_uptime_display: UP  12d 08h
