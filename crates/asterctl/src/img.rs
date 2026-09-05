@@ -66,7 +66,7 @@ impl ImageCache {
             let image_result = match load_image(&path, size) {
                 Ok(img) => Some(img.to_rgba8()),
                 Err(e) => {
-                    warn!("Failed to load image {:?}: {:?}", path, e);
+                    warn!("Failed to load image {path:?}: {e:?}");
                     None
                 }
             };

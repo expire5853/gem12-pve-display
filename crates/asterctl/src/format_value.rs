@@ -58,7 +58,7 @@ pub fn format_value(
 ) -> String {
     let num = match value.parse::<f64>() {
         Ok(n) => n,
-        Err(_) => return format!("{}{}", value, unit),
+        Err(_) => return format!("{value}{unit}"),
     };
 
     // Round number to the specified decimal digits
@@ -80,7 +80,7 @@ pub fn format_value(
             // We set decimal part to 0
             dec = 0;
         }
-        format!("{:0width$}", dec, width = decimal_digits)
+        format!("{dec:0decimal_digits$}")
     } else {
         "".to_string()
     };
@@ -94,18 +94,18 @@ pub fn format_value(
             if integer_str.len() > digits {
                 "9".repeat(digits)
             } else {
-                format!("{:0width$}", integer_part, width = digits)
+                format!("{integer_part:0digits$}")
             }
         }
     };
 
     let formatted = if decimal_digits > 0 {
-        format!("{}.{}", integer_filled, decimal_part)
+        format!("{integer_filled}.{decimal_part}")
     } else {
         integer_filled
     };
 
-    format!("{}{}", formatted, unit)
+    format!("{formatted}{unit}")
 }
 
 #[cfg(test)]

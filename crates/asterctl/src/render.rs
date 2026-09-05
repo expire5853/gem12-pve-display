@@ -281,7 +281,7 @@ impl PanelRenderer {
             .image_cache
             .get(pic_path, None)
             .ok_or_else(|| {
-                ImageProcessingError::ImageLoadError(format!("Failed to load: {:?}", pic_path))
+                ImageProcessingError::ImageLoadError(format!("Failed to load: {pic_path:?}"))
             })?
             .clone();
 
@@ -347,7 +347,7 @@ impl PanelRenderer {
             .image_cache
             .get(pic_path, None)
             .ok_or_else(|| {
-                ImageProcessingError::ImageLoadError(format!("Failed to load: {:?}", pic_path))
+                ImageProcessingError::ImageLoadError(format!("Failed to load: {pic_path:?}"))
             })?
             .clone();
 
@@ -451,7 +451,7 @@ impl PanelRenderer {
             .image_cache
             .get(pic_path, size)
             .ok_or_else(|| {
-                ImageProcessingError::ImageLoadError(format!("Failed to load: {:?}", pic_path))
+                ImageProcessingError::ImageLoadError(format!("Failed to load: {pic_path:?}"))
             })?
             .clone();
 

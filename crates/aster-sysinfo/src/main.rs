@@ -108,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if args.console {
             // pretty print console output with sorted keys
             for (label, value) in sensors.iter().sorted() {
-                println!("{}: {}", label, value);
+                println!("{label}: {value}");
             }
             println!();
         }
@@ -328,11 +328,11 @@ impl SysinfoSource {
             let label;
             match disk.kind() {
                 DiskKind::SSD => {
-                    label = format!("storage_ssd[{}]", ssd_idx);
+                    label = format!("storage_ssd[{ssd_idx}]");
                     ssd_idx += 1;
                 }
                 DiskKind::HDD => {
-                    label = format!("storage_hdd[{}]", hdd_idx);
+                    label = format!("storage_hdd[{hdd_idx}]");
                     hdd_idx += 1;
                 }
                 _ => continue,
@@ -487,7 +487,7 @@ fn update_linux_storage_sensors(
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Note: AOOSTAR-X only considered spinning Rust. Too bad if you're using SSDs in the HD bays...
     if let Ok(hdd_devices) = get_storage_devices(StorageDevice::HddOrSsd) {
-        debug!("HDD devices : {:?}", hdd_devices);
+        debug!("HDD devices : {hdd_devices:?}");
         for (idx, device) in hdd_devices.iter().enumerate() {
             let usage = get_disk_usage(device)?;
             add_sensor(
@@ -528,7 +528,7 @@ fn update_linux_storage_sensors(
 
     // AOOSTAR-X: ssd == nvme
     if let Ok(nvme_devices) = get_storage_devices(StorageDevice::Nvme) {
-        debug!("NVME devices: {:?}", nvme_devices);
+        debug!("NVME devices: {nvme_devices:?}");
         for (idx, device) in nvme_devices.iter().enumerate() {
             let usage = get_disk_usage(device)?;
             add_sensor(
@@ -691,7 +691,7 @@ pub fn get_smartctl_disk_temperature(dev: &str) -> Result<Option<i32>, Box<dyn s
         Regex::new(r"194\s+Temperature_Celsius\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+\S+\s+-\s+(\d+)")?;
     let nvme_temp_regex = Regex::new(r"Temperature:\s+(\d+)\s")?;
 
-    let dev = format!("/dev/{}", dev);
+    let dev = format!("/dev/{dev}");
     match Command::new("sudo")
         .arg("-n")
         .arg("smartctl")
@@ -728,10 +728,7 @@ pub fn get_disk_usage(dev: &str) -> Result<DiskUsage, Box<dyn std::error::Error>
     };
 
     // Get mounted partitions for this device
-    let cmd = format!(
-        "df -h --output=source,target,pcent | grep '/dev/{}[0-9]*'",
-        dev
-    );
+    let cmd = format!("df -h --output=source,target,pcent | grep '/dev/{dev}[0-9]*'");
 
     match Command::new("sh").arg("-c").arg(&cmd).output() {
         Ok(output) => {
@@ -757,10 +754,7 @@ pub fn get_disk_usage(dev: &str) -> Result<DiskUsage, Box<dyn std::error::Error>
                 let mountpoint = parts[1];
 
                 // Get size in bytes
-                let size_cmd = format!(
-                    "df --block-size=1 {} | awk 'NR==2 {{print $2}}'",
-                    mountpoint
-                );
+                let size_cmd = format!("df --block-size=1 {mountpoint} | awk 'NR==2 {{print $2}}'");
                 if let Ok(size_output) = Command::new("sh").arg("-c").arg(&size_cmd).output()
                     && let Ok(size_str) = String::from_utf8(size_output.stdout)
                     && let Ok(size) = size_str.trim().parse::<u64>()
@@ -769,10 +763,7 @@ pub fn get_disk_usage(dev: &str) -> Result<DiskUsage, Box<dyn std::error::Error>
                 }
 
                 // Get used space in bytes
-                let used_cmd = format!(
-                    "df --block-size=1 {} | awk 'NR==2 {{print $3}}'",
-                    mountpoint
-                );
+                let used_cmd = format!("df --block-size=1 {mountpoint} | awk 'NR==2 {{print $3}}'");
                 if let Ok(used_output) = Command::new("sh").arg("-c").arg(&used_cmd).output()
                     && let Ok(used_str) = String::from_utf8(used_output.stdout)
                     && let Ok(used) = used_str.trim().parse::<u64>()
