@@ -4,7 +4,10 @@ Reverse engineering the [AOOSTAR WTR MAX](https://aoostar.com/products/aoostar-w
 display protocol, with a proof-of-concept application written in Rust.  
 It has only been tested on the WTR MAX, but should also support the GEM12+ PRO device.
 
-Check out the **[User Guide](https://zehnm.github.io/aoostar-rs)** for a list of features and installation and usage information.
+This repository is a GEM12+ and Proxmox VE focused fork of
+[zehnm/aoostar-rs](https://github.com/zehnm/aoostar-rs). The original
+**[User Guide](https://zehnm.github.io/aoostar-rs)** documents the shared LCD
+protocol and base tools; fork-specific setup is documented in this repository.
 
 ## Features
 
@@ -17,6 +20,15 @@ Check out the **[User Guide](https://zehnm.github.io/aoostar-rs)** for a list of
     - Update sensor values from simple text files.
     - Rotate through multiple panels in a defined interval.
 - USB device/serial port selection.
+- Single-page Proxmox VE node, guest, storage, network, and host-time dashboard.
+- One-second status refresh with graphical online/offline network indicators.
+- MAFP fingerprint-module touch input without fingerprint enrollment or matching:
+    - Any touch wakes a sleeping display.
+    - Holding for two seconds switches the display off.
+- Dedicated unprivileged LXC deployment with persistent USB rebinding and a restricted SSH key.
+
+See the [Proxmox VE status panel guide](docs/pve.md) and
+[production deployment assets](deploy/README.md).
 
 ## Disclaimer
 

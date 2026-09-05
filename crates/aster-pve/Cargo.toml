@@ -1,0 +1,18 @@
+[package]
+name = "aster-pve"
+version = "0.1.0"
+description = "Proxmox VE sensor provider for asterctl"
+
+rust-version.workspace = true
+edition.workspace = true
+authors = ["expire5853"]
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4.5.42", features = ["derive"] }
+env_logger = "0.11.8"
+log = "0.4.27"
+serde_json = "1"
+tempfile = "3"

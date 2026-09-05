@@ -6,6 +6,7 @@
 
 - [Installation](installation.md)
   - [Linux systemd Service](linux/README.md)
+  - [Proxmox VE status panel](pve.md)
 - [asterctl Tool](asterctl.md)
 - [Shell Commands](shell_commands.md)
 
